@@ -1,4 +1,4 @@
-site,screeningID,age,sex,randomizationID,Treatment,Date
-c,10001,25,Other,1,Treatment - C,Tue Mar 29 10:25:38 2022
-c,10002,45,Male,2,Treatment - D,Tue Mar 29 10:26:08 2022
-c,10003,22,Female,3,Treatment - A,Tue Mar 29 10:26:17 2022
+"site","screeningID","age","sex","randomizationID","Treatment","Date","User"
+"c",10001,25,"Other",1,"Treatment - C","Tue Mar 29 10:25:38 2022","test3"
+"c",10002,45,"Male",2,"Treatment - D","Tue Mar 29 10:26:08 2022","test3"
+"c",10003,22,"Female",3,"Treatment - A","Tue Mar 29 10:26:17 2022","test3"
