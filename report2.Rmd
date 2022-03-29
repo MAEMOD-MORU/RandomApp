@@ -1,0 +1,22 @@
+---
+title: "Random Treatment"
+author: 'Requested by: User'
+date: '`r date()`'
+output: pdf_document
+---
+
+**Screening ID: **PLT-`r values$site`-`r values$PID`
+
+**Subject No: **PLT-`r values$site`-`r sprintf("%03d", as.numeric(values$randomizationID))`
+
+**Age: **`r values$age`
+
+**Sex: **`r values$sex`
+
+**Treatment: **`r values$treatment`
+
+**Registered Date: **`r values$timestamp`
+
+**Registered Site: **`r values$site`
+
+
