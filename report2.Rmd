@@ -1,6 +1,6 @@
 ---
-title: "Random Treatment"
-author: 'Requested by: User'
+title: "Random"
+author: 'Requested by: `r res_auth$user`'
 date: '`r date()`'
 output: pdf_document
 ---
@@ -19,4 +19,5 @@ output: pdf_document
 
 **Registered Site: **`r values$site`
 
+**Registered by: **`r values$user`
 
