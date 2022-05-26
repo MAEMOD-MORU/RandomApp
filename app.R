@@ -7,7 +7,7 @@ library(shinyWidgets)
 library(shinyalert)
 library(shinyjs)
 
-
+#create Dropbox Token in SaveToken.R
 tokenfile = 'dropbox_Token.rds'
 logfile <- "log.csv"
 drop.folder = "Randomisation"
@@ -28,14 +28,14 @@ credentials <- data.frame(
 # for adding user loging time
 # logfile headers : user, timestamp
 addLog <- function(user,site,file = file.path(drop.folder,logfile)){
-  
+
   time.stamp <- date()
   tmplog <- rbind(data.frame(login=user,timestamp=time.stamp), drop_read_csv(file))
 
   write.csv(tmplog, file=logfile,row.names = F)
-  
+
   drop_upload(logfile, path = drop.folder)
-  
+
   paste("You are logged in as ",user,"\non ",time.stamp, "\nfrom site ",site,".",sep='')
 }
 
@@ -45,16 +45,16 @@ addLog <- function(user,site,file = file.path(drop.folder,logfile)){
 addPID <- function(site, screenID, age, sex, randID, treatment, file, timestamp, user){
 
   tmpdat <- rbind(drop_read_csv(file.path(drop.folder, file)),
-                  data.frame(site = site, 
-                             screeningID = screenID, 
-                             age = age, sex = sex, 
-                             randomizationID = randID, 
-                             Treatment = treatment, 
-                             Date = timestamp, 
+                  data.frame(site = site,
+                             screeningID = screenID,
+                             age = age, sex = sex,
+                             randomizationID = randID,
+                             Treatment = treatment,
+                             Date = timestamp,
                              user = user))
-    
+
   write.csv(tmpdat, file = file, row.names = F)
-  
+
   drop_upload(file, path = drop.folder)
 
   return(tmpdat)
@@ -68,14 +68,14 @@ existQ <- function(site, pid, age, sex, user){
   tmp <- tmp.dat[tmp.dat$screeningID == pid & tmp.dat$age == age & tmp.dat$sex == sex & tmp.dat$user == user,]
   tmp2 <- tmp.dat[tmp.dat$screeningID == pid & tmp.dat$age != age | tmp.dat$sex != sex,]
   outlist <- list()
-  if(nrow(tmp)==1){ 
+  if(nrow(tmp)==1){
     outlist$exist <- TRUE
     outlist$data <- tmp
   }else{
     outlist$exist <- FALSE
     outlist$data <- NULL
   }
-  
+
   # for checking if the entered PID exist but age and sex are not matched.
   if(nrow(tmp2==1)){
     outlist$exist2 <- TRUE
@@ -90,18 +90,18 @@ existQ <- function(site, pid, age, sex, user){
 getTreatment <- function(site, PID){
   rand.file <- paste0("rand-",site,".csv")
   data.file <- paste0("data-",site,".csv")
-  
+
   output <- list()
-  
+
   # how many patients have been added?
   tmp.data <- drop_read_csv(file.path(drop.folder,data.file))
   is.assigned <- PID %in% tmp.data[,2]
   output$Assigned <- is.assigned
-  
+
   npid <- nrow(tmp.data)
   tmp.rand <- drop_read_csv(file.path(drop.folder,rand.file))
   n.rand <- nrow(tmp.rand)
-    
+
   # get the new treatment
   if ((is.assigned == F) && (npid+1 <= n.rand)){
     output$site <- site
@@ -138,7 +138,7 @@ ui <- fluidPage(
   titlePanel(tagList(
     tags$h1("Random"),
     verbatimTextOutput("auth_output"))
-  ),  
+  ),
   sidebarLayout(
     sidebarPanel(
       useShinyjs(),
@@ -160,11 +160,11 @@ ui <- secure_app(ui)
 
 # server side
 server <- function(input, output, session){
-  
-  
-    
+
+
+
     values <- reactiveValues()
-    
+
     observe({
       if(is.null(input$sex)){
       shinyjs::disable("validate.button")
@@ -172,44 +172,44 @@ server <- function(input, output, session){
       shinyjs::enable("validate.button")
       }
     })
-    
+
     output$reset_input <- renderUI({
       div(
         numericInput("PID","Screening ID (1XXXX)",value = NULL),
         radioButtons("sex","Sex:",c("Male","Female","Other"),inline=T),
         numericInput("age","Age:",value = NULL,min=18,max = 50)
       )
-      
+
     })
-    
+
     # call the server part
     # check_credentials returns a function to authenticate users
     res_auth <- secure_server(
         check_credentials = check_credentials(credentials)
     )
-    
+
     # show the login info
     output$auth_output <- renderText({
       addLog(user = res_auth$user,site = res_auth$site)
     })
-    
+
     #check if validate.button is clicked
     observeEvent(input$validate.button,{
       values$site <- res_auth$site
       values$user <- res_auth$user
-      
+
       values$site.file <- paste0("rand-",values$site,".csv")
       values$data.file <- paste0("data-",values$site,".csv")
       values$PID <- input$PID
-      
+
       values$age <- input$age
       values$sex <- input$sex
-      
+
       ## check if the inputs are ok
       values$check.screenID <- check_screening_ID(input$PID)
       values$check.age <- check_age(input$age)
 
-      if(values$check.screenID == T && values$check.age == T && between(values$age,18,50) ==T){  
+      if(values$check.screenID == T && values$check.age == T && between(values$age,18,50) ==T){
         ask_confirmation(
           inputId = "validate.confirm",
           type = "warning",
@@ -238,15 +238,15 @@ server <- function(input, output, session){
           btn_labels = c(NULL,"OK")
         )
       }
-      
-    })
-    
 
-    # check if the OK/Cancel button in validate window is clicked 
+    })
+
+
+    # check if the OK/Cancel button in validate window is clicked
     observeEvent(input$validate.confirm,{
-      
+
       values$validate.confirm <- input$validate.confirm
-      
+
       ## click ok after in the validate windows
       if(values$validate.confirm == TRUE){
         # check if patient has been randomized
@@ -256,20 +256,20 @@ server <- function(input, output, session){
                               sex = values$sex,
                               site = values$site,
                               user = res_auth$user)
-  
+
         values$exist.data <- exist.check$data
         values$exist.check <- exist.check$exist
         values$exist2.check <- exist.check$exist2
-        
+
         treatment.lst <- getTreatment(values$site,values$PID)
         values$assigned <- treatment.lst$Assigned
         values$screeningID <- treatment.lst$screeningID
         values$randomizationID <- treatment.lst$randomizationID
-        
+
         values$treatment <- treatment.lst$Treatment
         values$timestamp <- date()
-        
-        
+
+
         # if all inputs are matched with the existed one then show the information as well as the download button
         if(values$exist.check == TRUE){
           ask_confirmation(
@@ -294,7 +294,7 @@ server <- function(input, output, session){
         }else{
           # only PID that match with the existed one
           if(values$exist2.check == TRUE && values$assigned == TRUE){
-            
+
             ask_confirmation(
               inputId = "exist2.info",
               type = "warning",
@@ -306,18 +306,18 @@ server <- function(input, output, session){
           }else{
             # if PID is new then add
             if(values$assigned == FALSE){
-              
-              values$newdata <- addPID(site = values$site, 
+
+              values$newdata <- addPID(site = values$site,
                                        screenID = values$PID,
                                        age = values$age,
-                                       sex = values$sex, 
+                                       sex = values$sex,
                                        randID = values$randomizationID,
-                                       treatment = values$treatment, 
-                                       file = values$data.file, 
-                                       timestamp = values$timestamp, 
+                                       treatment = values$treatment,
+                                       file = values$data.file,
+                                       timestamp = values$timestamp,
                                        user = res_auth$user
                                       )
-              
+
               ask_confirmation(
                 inputId = "add.new",
                 type = "success",
@@ -337,21 +337,21 @@ server <- function(input, output, session){
                 btn_colors = c("#FE642E", "#04B404"),
                 html = TRUE
               )
-              
+
             }
-            
+
           }
-          
-          
+
+
         }## else
-  
-        
+
+
       }
     })
 
     # for reporting the existed
     output$downloadPDF <- downloadHandler(
-      
+
       filename = function() {
         paste0('PLT-',values$site,'-',values$PID,'.pdf',sep='')
                #format(Sys.time(), " %d-%b-%Y %H.%M.%S"), ".pdf")
@@ -363,19 +363,19 @@ server <- function(input, output, session){
         owd <- setwd(tempdir())
         on.exit(setwd(owd))
         file.copy(src, 'report.Rmd')
-        
+
         #render pdf doc by using report-pdf.Rmd template and latex engine is xelatex
         outpdf <- render(input = 'report.Rmd',
-                      output_format = pdf_document(latex_engine = "xelatex") 
+                      output_format = pdf_document(latex_engine = "xelatex")
         )
         #rename file
         file.rename(outpdf, file)
       }
     )
-    
+
     # for reporting the new PID
     output$downloadPDF2 <- downloadHandler(
-      
+
       filename = function() {
         paste0('PLT-',values$site,'-',values$PID,'.pdf',sep='')
         #format(Sys.time(), " %d-%b-%Y %H.%M.%S"), ".pdf")
@@ -387,22 +387,22 @@ server <- function(input, output, session){
         owd <- setwd(tempdir())
         on.exit(setwd(owd))
         file.copy(src, 'report2.Rmd')
-        
+
         #render pdf doc by using report-pdf.Rmd template and latex engine is xelatex
         outpdf <- render(input = 'report2.Rmd',
-                         output_format = pdf_document(latex_engine = "xelatex") 
+                         output_format = pdf_document(latex_engine = "xelatex")
         )
         #rename file
         file.rename(outpdf, file)
       }
     )
-    
-    
+
+
     ### clear the input fields
     observeEvent(input$exist.info,{
-      
+
       values$exist.info <- input$exist.info
-      
+
       if(values$exist.info == FALSE){
         output$reset_input <- renderUI({
           div(
@@ -412,14 +412,14 @@ server <- function(input, output, session){
           )
         })
       }
-      
+
     })
-    
+
     ### clear the input fields
     observeEvent(input$exist2.info,{
-      
+
       values$exist2.info <- input$exist2.info
-      
+
       if(values$exist2.info == FALSE){
         output$reset_input <- renderUI({
           div(
@@ -429,15 +429,15 @@ server <- function(input, output, session){
           )
         })
       }
-      
+
     })
-    
-    
+
+
     ### clear the input fields
     observeEvent(input$add.new,{
-      
+
       values$add.new <- input$add.new
-      
+
       if(values$add.new == FALSE){
         output$reset_input <- renderUI({
           div(
@@ -447,9 +447,9 @@ server <- function(input, output, session){
           )
         })
       }
-      
+
     })
-    
+
     data.table <- reactivePoll(1000, session,
                                # This function returns the time that log_file was last modified
                                checkFunc = function() {
@@ -468,8 +468,8 @@ server <- function(input, output, session){
     output$site.data <- renderDataTable({
       data.table()
     })
-    
-    
+
+
 }### end SERVER
 
 
